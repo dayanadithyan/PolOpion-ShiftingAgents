@@ -4,47 +4,110 @@ import torch
 from collections import Counter
 import math
 
-# Load spaCy English model
-nlp = spacy.load("en_core_web_sm")
+def analyze_sentiment(text):
+    """
+    Performs sentiment analysis on the given text.
 
-# Load BERT tokenizer and model
-tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-model = BertModel.from_pretrained("bert-base-uncased")
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    Args:
+        text (str): The text to analyze.
 
-# Initialize sentiment analysis pipeline using transformers
-sentiment_pipeline = pipeline("sentiment-analysis")
+    Returns:
+        float: The sentiment score ranging from -1 to 1.
+    """
+    result = sentiment_pipeline(text)[0]
+    sentiment_score = result["score"]
+    return sentiment_score
+
+def analyze_relevance(text):
+    """
+    Performs relevance analysis on the given text.
+
+    Args:
+        text (str): The text to analyze.
+
+    Returns:
+        float: The relevance score ranging from 0 to 1.
+    """
+    tokens = nlp(text)
+    word_frequencies = Counter([token.text.lower() for token in tokens if not token.is_punct and not token.is_stop])
+    relevance_score = len(word_frequencies) / len(tokens)
+    return relevance_score
+
+def bayesian_calculation(prior_probability, sensitivity, specificity, evidence_positive):
+    """
+    Performs Bayesian calculation.
+
+    Args:
+        prior_probability (float): Prior probability of the hypothesis (patient having the disease).
+        sensitivity (float): Likelihood of a positive test result given the hypothesis (sensitivity).
+        specificity (float): Likelihood of a negative test result given the hypothesis (1 - specificity).
+        evidence_positive (float): Probability of a positive test result (marginal likelihood).
+
+    Returns:
+        float: Posterior probability of the hypothesis given the evidence (positive test result).
+    """
+    evidence_negative = 1 - evidence_positive
+    marginal_likelihood = (prior_probability * sensitivity) + ((1 - prior_probability) * (1 - specificity))
+    posterior_probability = (prior_probability * sensitivity) / marginal_likelihood
+    return posterior_probability
+
+def determine_cognitive_tool(input_theory):
+    """
+    Determines cognitive tool based on input theory using a large language model.
+
+    Args:
+        input_theory (str): The input theory provided by the user.
+
+    Returns:
+        str: The determined cognitive tool based on the input theory.
+    """
+    cognitive_tool = "Neoliberal Capitalism"  # Placeholder, replace with actual implementation
+    return cognitive_tool
 
 class Agent:
+    """A base class for all agents."""
     def __init__(self, name, opinion):
+        """
+        Initializes an Agent.
+
+        Args:
+            name (str): The name of the agent.
+            opinion (float): The initial opinion of the agent (a value between 0 and 1).
+        """
         self.name = name
         self.opinion = opinion
 
-    def update_opinion(self, news, cognitive_tool):
+    def update_opinion(self, news, cognitive_tool, test_result):
         """
-        Update opinion based on news content and cognitive tool.
+        Updates the agent's opinion based on news content, cognitive tool, and test result.
 
-        Parameters:
-        - news (str): The news content to evaluate.
-        - cognitive_tool (str): The cognitive tool or theory used to evaluate the news content.
+        Args:
+            news (str): The news content to evaluate.
+            cognitive_tool (str): The cognitive tool or theory used to evaluate the news content.
+            test_result (str): The result of the diagnostic test (positive or negative).
+
+        Raises:
+            NotImplementedError: If the method is not implemented by subclasses.
         """
         raise NotImplementedError("The update_opinion method must be implemented by subclasses.")
 
 class ModelBasedReflexAgent(Agent):
-    def update_opinion(self, news, cognitive_tool):
+    """An agent that updates its opinion based on a model-based reflex strategy."""
+    def update_opinion(self, news, cognitive_tool, test_result):
         """
-        Update opinion based on news content using model-based reflex strategy.
+        Updates the agent's opinion based on news content, cognitive tool, and test result.
 
-        Parameters:
-        - news (str): The news content to evaluate.
-        - cognitive_tool (str): The cognitive tool or theory used to evaluate the news content.
+        Args:
+            news (str): The news content to evaluate.
+            cognitive_tool (str): The cognitive tool or theory used to evaluate the news content.
+            test_result (str): The result of the diagnostic test (positive or negative).
         """
         # Perform sentiment analysis
         sentiment_score = analyze_sentiment(news)
         # Perform relevance analysis
         relevance_score = analyze_relevance(news)
 
-        # Apply model-based reflex strategy
+        # Update opinion based on news content and cognitive tool
         if cognitive_tool == "Neoliberal Capitalism":
             # Neoliberal Capitalism strategy
             if sentiment_score >= 0:  # Positive sentiment
@@ -58,21 +121,38 @@ class ModelBasedReflexAgent(Agent):
             else:  # Negative sentiment
                 self.opinion += 0.1 * relevance_score
 
+        # Perform Bayesian update based on the test result
+        if test_result == "positive":
+            # Bayesian update based on positive test result
+            self.opinion = bayesian_calculation(self.opinion, 0.95, 0.05, 0.015)  # Example likelihoods and evidence for positive result
+        elif test_result == "negative":
+            # Bayesian update based on negative test result
+            self.opinion = bayesian_calculation(self.opinion, 0.05, 0.90, 0.985)  # Example likelihoods and evidence for negative result
+
         # Ensure the updated opinion is within the range [0, 1]
-        self.opinion = max(0.0, min(1.0, self.opinion)))
+        self.opinion = max(0.0, min(1.0, self.opinion)))  # Clamp the value between 0 and 1
 
 class LearningAgent(Agent):
+    """An agent that updates its opinion based on a learning strategy."""
     def __init__(self, name, opinion):
+        """
+        Initializes a LearningAgent.
+
+        Args:
+            name (str): The name of the agent.
+            opinion (float): The initial opinion of the agent (a value between 0 and 1).
+        """
         super().__init__(name, opinion)
         self.learning_rate = 0.1
 
-    def update_opinion(self, news, cognitive_tool):
+    def update_opinion(self, news, cognitive_tool, test_result):
         """
-        Update opinion based on news content using learning strategy.
+        Updates the agent's opinion based on news content, cognitive tool, and test result.
 
-        Parameters:
-        - news (str): The news content to evaluate.
-        - cognitive_tool (str): The cognitive tool or theory used to evaluate the news content.
+        Args:
+            news (str): The news content to evaluate.
+            cognitive_tool (str): The cognitive tool or theory used to evaluate the news content.
+            test_result (str): The result of the diagnostic test (positive or negative).
         """
         # Perform sentiment analysis
         sentiment_score = analyze_sentiment(news)
@@ -85,20 +165,27 @@ class LearningAgent(Agent):
         else:  # Negative sentiment
             self.opinion -= self.learning_rate * relevance_score
 
+        # Perform Bayesian update based on the test result
+        if test_result == "positive":
+            # Bayesian update based on positive test result
+            self.opinion = bayesian_calculation(self.opinion, 0.95, 0.05, 0.015)  # Example likelihoods and evidence for positive result
+        elif test_result == "negative":
+            # Bayesian update based on negative test result
+            self.opinion = bayesian_calculation(self.opinion, 0.05, 0.90, 0.985)  # Example likelihoods and evidence for negative result
+
         # Ensure the updated opinion is within the range [0, 1]
-        self.opinion = max(0.0, min(1.0, self.opinion)))
+        self.opinion = max(0.0, min(1.0, self.opinion)))  # Clamp the value between 0 and 1
 
 class HybridAgent(Agent):
-    def __init__(self, name, opinion):
-        super().__init__(name, opinion)
-
-    def update_opinion(self, news, cognitive_tool):
+    """An agent that updates its opinion based on a hybrid approach combining model-based reflex and learning."""
+    def update_opinion(self, news, cognitive_tool, test_result):
         """
-        Update opinion based on news content using hybrid strategy.
+        Updates the agent's opinion based on news content, cognitive tool, and test result.
 
-        Parameters:
-        - news (str): The news content to evaluate.
-        - cognitive_tool (str): The cognitive tool or theory used to evaluate the news content.
+        Args:
+            news (str): The news content to evaluate.
+            cognitive_tool (str): The cognitive tool or theory used to evaluate the news content.
+            test_result (str): The result of the diagnostic test (positive or negative).
         """
         # Perform sentiment analysis
         sentiment_score = analyze_sentiment(news)
@@ -126,67 +213,27 @@ class HybridAgent(Agent):
             # Combine opinions from both strategies
             self.opinion = (model_based_reflex_opinion + learning_opinion) / 2
 
+        # Perform Bayesian update based on the test result
+        if test_result == "positive":
+            # Bayesian update based on positive test result
+            self.opinion = bayesian_calculation(self.opinion, 0.95, 0.05, 0.015)  # Example likelihoods and evidence for positive result
+        elif test_result == "negative":
+            # Bayesian update based on negative test result
+            self.opinion = bayesian_calculation(self.opinion, 0.05, 0.90, 0.985)  # Example likelihoods and evidence for negative result
+
         # Ensure the updated opinion is within the range [0, 1]
-        self.opinion = max(0.0, min(1.0, self.opinion)))
+        self.opinion = max(0.0, min(1.0, self.opinion)))  # Clamp the value between 0 and 1
 
-def analyze_sentiment(text):
-    """
-    Perform sentiment analysis on the given text using a deep learning model.
-
-    Parameters:
-    - text (str): The input text to analyze.
-
-    Returns:
-    - sentiment_score (float): The sentiment score ranging from 0 (most negative) to 1 (most positive).
-    """
-    # Perform sentiment analysis using the pre-trained sentiment analysis model
-    result = sentiment_pipeline(text)[0]
-    sentiment_score = result["score"]
-    return sentiment_score
-
-def analyze_relevance(text):
-    """
-    Perform relevance analysis on the given text using a deep learning model.
-
-    Parameters:
-    - text (str): The input text to analyze.
-
-    Returns:
-    - relevance_score (float): The relevance score representing the importance of the text.
-    """
-    # Tokenize the text using spaCy
-    tokens = [token.text for token in nlp(text) if not token.is_punct and not token.is_stop and token.is_alpha]
-    
-    # Convert tokens to BERT input format
-    indexed_tokens = tokenizer.convert_tokens_to_ids(tokens)
-    segments_ids = [1] * len(indexed_tokens)  # Single sequence for relevance analysis
-
-    # Convert inputs to PyTorch tensors
-    tokens_tensor = torch.tensor([indexed_tokens])
-    segments_tensors = torch.tensor([segments_ids])
-
-    # Forward pass, get hidden states from BERT model
-    tokens_tensor = tokens_tensor.to(device)
-    segments_tensors = segments_tensors.to(device)
-    with torch.no_grad():
-        outputs = model(tokens_tensor, segments_tensors)
-    
-    # Use the final layer's hidden states to compute relevance scores
-    relevance_scores = torch.mean(outputs.last_hidden_state, dim=1).squeeze().cpu().numpy()
-
-    # Aggregate relevance scores to obtain overall relevance score
-    relevance_score = sum(relevance_scores) / len(relevance_scores)
-    return relevance_score
-
-# Create an agent with dynamic cognitive tool determination
 class DynamicCognitiveAgent(Agent):
-    def update_opinion(self, news, input_theory):
+    """An agent that dynamically chooses its behavior based on input theory."""
+    def update_opinion(self, news, input_theory, test_result):
         """
-        Update opinion based on news content and dynamically determined cognitive tool.
+        Updates the agent's opinion based on news content, input theory, and test result.
 
-        Parameters:
-        - news (str): The news content to evaluate.
-        - input_theory (str): The input theory used to determine the cognitive tool.
+        Args:
+            news (str): The news content to evaluate.
+            input_theory (str): The input theory provided by the user.
+            test_result (str): The result of the diagnostic test (positive or negative).
         """
         # Determine cognitive tool using large language model
         cognitive_tool = determine_cognitive_tool(input_theory)
@@ -200,35 +247,30 @@ class DynamicCognitiveAgent(Agent):
             agent = LearningAgent(self.name, self.opinion)
 
         # Update opinion using selected agent
-        agent.update_opinion(news, cognitive_tool)
+        agent.update_opinion(news, cognitive_tool, test_result)
         self.opinion = agent.opinion
 
-def determine_cognitive_tool(input_theory):
-    """
-    Determine cognitive tool based on input theory using a large language model.
+# Load spaCy English model
+nlp = spacy.load("en_core_web_sm")
 
-    Parameters:
-    - input_theory (str): The input theory provided by the user.
+# Initialize sentiment analysis pipeline using transformers
+sentiment_pipeline = pipeline("sentiment-analysis")
 
-    Returns:
-    - cognitive_tool (str): The determined cognitive tool based on the input theory.
-    """
-    # Use a large language model to determine the cognitive tool
-    # Placeholder for actual implementation
-    # For example, you can use GPT-3 to generate a response based on the input theory
-    # and then extract the cognitive tool mentioned in the response
-    cognitive_tool = "Neoliberal Capitalism"  # Placeholder, replace with actual implementation
-    return cognitive_tool
+# Load BERT tokenizer and model
+tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+model = BertModel.from_pretrained("bert-base-uncased")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Sample usage of the DynamicCognitiveAgent
 agent_dynamic = DynamicCognitiveAgent(name="Dynamic Agent", opinion=0.5)
 
-# Sample news content and input theory
-news_content = "News content to evaluate"
-input_theory = "The balance between government intervention and free markets in the economy."
+# Sample news content, input theory, and test result
+news_content = []
+input_theory = []
+test_result = []
 
 # Update opinion for the DynamicCognitiveAgent
-agent_dynamic.update_opinion(news_content, input_theory)
+agent_dynamic.update_opinion(news_content, input_theory, test_result)
 
 # Print the updated opinion of the agent
 print(f"{agent_dynamic.name}'s updated opinion: {agent_dynamic.opinion}")
