@@ -250,7 +250,7 @@ def determine_cognitive_tool(input_theory):
     # Placeholder for actual implementation
     # For example, you can use GPT-3 to generate a response based on the input theory
     # and then extract the cognitive tool mentioned in the response
-    cognitive_tool = "Neoliberal Capitalism"  # Placeholder, replace with actual implementation
+    cognitive_tool = ""  # Placeholder, replace with actual implementation
     return cognitive_tool
 
 ##################################
